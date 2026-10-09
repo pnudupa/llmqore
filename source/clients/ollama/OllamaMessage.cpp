@@ -105,11 +105,17 @@ MessageEffects OllamaMessage::applyResponse(const QJsonObject &response)
 void OllamaMessage::handleContentDelta(const QString &content)
 {
     m_accumulatedContent += content;
+
+    /* By treating any message that starts with { or ` as tool_call potentials,
+       we are subjecting ourselves to not being able to use structured response
+       at all. */
+#if 0
     QString trimmed = m_accumulatedContent.trimmed();
 
     if (trimmed.startsWith('{') || trimmed.startsWith('`')) {
         return;
     }
+#endif
 
     if (!m_contentAddedToTextBlock) {
         if (auto *textContent = blockAt<TextContent>(ensureTextContentIndex()))

@@ -71,14 +71,22 @@ TEST(OllamaMessage, PlainTextAccumulatesAndIsHandedBackAsChunks)
     EXPECT_EQ(textBlock->text, "Hello world");
 }
 
-TEST(OllamaMessage, JsonLookingContentIsHeldBackAsAPossibleToolCall)
+/**
+ * Adding a test to check if messages starting with { and ` are not ignored as 
+ * tool_call requests. This is required to enable structured response interactions
+ * with Ollama.
+ */
+TEST(OllamaMessage, JsonLookingContentIsHandedBackAsChunksLikeAnyOtherText)
 {
     OllamaMessage msg;
-    const MessageEffects effects = msg.applyEvent(contentLine(R"({"name": "read")"));
+    const QString content = R"({"summary": "text"})";
+    const MessageEffects effects = msg.applyEvent(contentLine(content));
 
-    EXPECT_TRUE(effects.chunk.isEmpty());
-    for (const TurnContent &block : msg.currentBlocks())
-        EXPECT_EQ(std::get_if<TextContent>(&block), nullptr);
+    EXPECT_EQ(effects.chunk, content);
+    ASSERT_EQ(msg.currentBlocks().size(), 1);
+    auto *textBlock = std::get_if<TextContent>(&msg.currentBlocks()[0]);
+    ASSERT_NE(textBlock, nullptr);
+    EXPECT_EQ(textBlock->text, content);
 }
 
 TEST(OllamaMessage, GenerateEndpointResponseIsText)
