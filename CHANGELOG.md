@@ -33,6 +33,7 @@ Rebuild against 0.9 and follow [Migrating to 0.9](docs/migration-0.9.md). In sho
 - `Rpc::Transport::sendFailed`, so a request whose message never left fails at once.
 - `CallbackElicitationProvider`, `DirectoryRootsProvider`, `StaticResourceProvider`.
 - `ProviderProfile` and a `*Profile()` function for every bundled client.
+- `CompletionInfo::lastRoundUsage`: token usage of the final round alone (`usage` still adds up all rounds).
 
 ### Fixed
 

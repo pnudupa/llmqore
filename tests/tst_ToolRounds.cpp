@@ -168,6 +168,33 @@ TEST(ToolRounds, ResultsHandedToTheLoopAreScopedToTheClosingRound)
         << "the closing round must contribute its own result, not a replay of round 1";
 }
 
+TEST(ToolRounds, LastRoundUsageIsTheFinalRoundWhileUsageSumsAllRounds)
+{
+    FakeHttpTransport transport;
+    OpenAIClient client("http://fake.local/v1", "sk-test", "gpt-test", &transport);
+    client.tools()->addTool(new CountingTool(&client));
+
+    QSignalSpy finalized(&client, &BaseClient::requestFinalized);
+
+    client.ask(QStringLiteral("go"));
+    transport.lastStream()->sendAll(
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":5}}\n\n"
+        + toolCallTurn("call_a"));
+    ASSERT_TRUE(LLMQoreTest::waitForStreams(transport, 2));
+
+    transport.lastStream()->sendAll(
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":160,\"completion_tokens\":7}}\n\n"
+        + finalTurn("done"));
+
+    ASSERT_EQ(finalized.count(), 1);
+    const auto info = finalized.at(0).at(1).value<CompletionInfo>();
+    ASSERT_TRUE(info.usage.has_value());
+    ASSERT_TRUE(info.lastRoundUsage.has_value());
+    EXPECT_EQ(info.usage->promptTokens, 260);
+    EXPECT_EQ(info.lastRoundUsage->promptTokens, 160);
+    EXPECT_EQ(info.lastRoundUsage->completionTokens, 7);
+}
+
 TEST(ToolRounds, ParallelRequestsSharingAToolCallIdDoNotCollide)
 {
     FakeHttpTransport transport;

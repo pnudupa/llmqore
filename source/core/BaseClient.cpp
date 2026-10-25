@@ -70,6 +70,7 @@ struct ActiveRequest
     QString stopReason = {};
     std::optional<TokenUsage> usage = {};
     std::optional<TokenUsage> turnUsage = {};
+    std::optional<TokenUsage> lastRoundUsage = {};
     int toolRounds = 0;
     Conversation conversation = {};
     bool tracksConversation = false;
@@ -924,6 +925,7 @@ void BaseClient::completeRequest(const RequestID &id)
     QString fullText = it->buffers.responseContent;
     QString stopReason = it->stopReason;
     std::optional<TokenUsage> usage = it->usage;
+    std::optional<TokenUsage> lastRoundUsage = it->lastRoundUsage;
     QJsonObject requestPayload = it->finalPayload.isEmpty() ? it->originalPayload
                                                            : it->finalPayload;
 
@@ -946,6 +948,7 @@ void BaseClient::completeRequest(const RequestID &id)
     info.model = m_model;
     info.stopReason = stopReason;
     info.usage = usage;
+    info.lastRoundUsage = lastRoundUsage;
     info.requestPayload = requestPayload;
     info.conversation = conversation;
     emit requestFinalized(id, info);
@@ -989,7 +992,11 @@ void BaseClient::finalizeTurn(const RequestID &id)
 {
     LLMQORE_ASSERT_OWNING_THREAD();
     auto it = m_impl->requests.find(id);
-    if (it == m_impl->requests.end() || !it->turnUsage)
+    if (it == m_impl->requests.end())
+        return;
+
+    it->lastRoundUsage = it->turnUsage;
+    if (!it->turnUsage)
         return;
 
     if (!it->usage) {

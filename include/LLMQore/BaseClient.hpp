@@ -91,6 +91,7 @@ struct LLMQORE_EXPORT CompletionInfo
     QString model;
     QString stopReason;
     std::optional<TokenUsage> usage;
+    std::optional<TokenUsage> lastRoundUsage; // of the final round only; usage adds up all rounds
 
     QJsonObject requestPayload;
     Conversation conversation;
